@@ -39,7 +39,7 @@ Example:
     and it is a diretory.
   $ echo $PATH
   /bin:/usr/bin:~/bin
-  $ prepend_to_path PATH :d ~/bin:~/usr/bin:~/.local/bin:/not/exist
+  $ prepend_to PATH :d ~/bin:~/usr/bin:~/.local/bin:/not/exist
   $ echo $PATH
   ~/usr/bin:~/.local/bin:/bin:/usr/bin:~/bin
 EOF

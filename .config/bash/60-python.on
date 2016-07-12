@@ -1,0 +1,6 @@
+# -*- mode: sh -*-
+
+export PYTHONSTARTUP=~/.pythonrc
+export PYTHONUSERBASE=~/.local/share/python
+append_to PATH :d $PYTHONUSERBASE/bin
+append_to PYTHONPATH :d $PYTHONUSERBASE/lib/python2.7/site-packages

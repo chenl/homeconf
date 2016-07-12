@@ -1,0 +1,29 @@
+#+title: homeconf -- My configuration of my home direcotry
+#+author: Chen Rotem Levy
+#+email: contrib@chenlevy.com
+#+options: ^:nil
+
+* Overview
+
+Here is the basic setup of my home home directory. It includes the dot-files for Bash, Emacs, GNU/Screen and Python, as well as several useful scripts.
+
+* Installation
+
+@TDB
+
+* Features
+** Bash
+- Colorful prompt that respects Python's Virtual Environment, local Git repositories, and return code of the last command.
+- Functions: ~append_to~, ~prepend_to~, ~cd ...~, ~vless~
+- more...
+** Emacs
+- Personal modification for the Prelude starter kit
+** Python
+- Tab completion in the normal REPL.
+** GNU/Screen
+- Basic configuration.
+** Scripts
+- logcmd -- capture the output of a command as a log file.
+- colog -- colorize important words in a log.
+- e, ee -- Emacs client.
+- tts -- text to speech with festival, and dbus

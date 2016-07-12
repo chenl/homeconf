@@ -1,0 +1,14 @@
+# -*- mode: sh -*-
+_install_xspec()
+{
+    local xspec=$1 cmd
+    shift
+    for cmd in $@; do
+        _xspecs[$cmd]=$xspec
+    done
+    complete -F _filedir_xspec $@
+}
+
+_install_xspec '*.@(o|so|so.!(conf|*/*)|a|[rs]pm|gif|jp?(e)g|mp3|mp?(e)g|avi|asf|ogg|class)' e ee
+
+unset -f _install_spec

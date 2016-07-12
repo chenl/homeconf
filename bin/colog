@@ -1,0 +1,19 @@
+#!/bin/bash
+
+case $(tr "[A-Z]" "[a-z]" <<< "${TERM_THEME}") in
+    dark)
+        ERR=$(echo -ne '\e[1;31m')
+        WARN=$(echo -ne '\e[1;33m')
+        OK=$(echo -ne '\e[1;32m')
+        ;;
+    *)
+        ERR=$(echo -ne '\e[2;31m')
+        WARN=$(echo -ne '\e[2;35m')
+        OK=$(echo -ne '\e[2;32m')
+        ;;
+esac
+OFF=$(echo -ne '\e[0m')
+
+sed -re "s:(error|fail(ed|ure)?|exception|fatal|critical|catastrophic|denied|\bred\b):${ERR}\1${OFF}:Ig" \
+     -e "s:(\bwarn(ing)?\b|can'?t|can ?not|unable|ignore|interrupt|skip|does not exist|no such|\byellow\b|\bember\b):${WARN}\1${OFF}:Ig" \
+     -e "s:(success(full?y?)?|succeeded|\bok\b|\bpass(ed)?\b|done)|\bgreen\b:${OK}\1${OFF}:Ig" ${1:--}

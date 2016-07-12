@@ -1,0 +1,139 @@
+# -*- mode: sh -*-
+
+# helper
+function _pend_to_usage() {
+    cat <<"EOF"
+Name:
+   append_to -- append $VALUE to $VARIABLE
+   prepend_to -- prepend $VALUE to $VARIABLE
+   remove_from -- remove $VALUE from $VARIABLE
+      where $VARIABLE is a $SEP seperated list of $VALUES
+Usage:
+   append_to <var> <sep>[<tst>[<rst>]] <val>[[<sep><val>]...]
+   prepend_to <var> <sep>[<tst>[<rst>]] <val>[[<sep><val>]...]
+   remove_from <var> <sep> <val>[[<sep><val>]...]
+Where:
+  <var>   enviromnet variable name (e.g. "PATH")
+  <sep>   seperator char of VAR (e.g. ":")
+  <tst>   /in append_to and prepend_to only/
+          test code (one of [bcdefgGhkLnOprsStuwxz]) that <val> need
+          to sutifly in order for it to be added to <var>:
+          n  <val> is non empty string
+          d  <val> exists and is a directory
+          e  <val> exist
+          f  <val> exists and is a regular file
+          h  <val> exists and is a symbolic link (same as L)
+          s  <val> exists and has a size greater than zero
+          S  <val> exists and is a socket
+          etc. See entire list in `man test(1)'
+          if <tst> is empty, no test performed.
+  <rst>   /in append_to and prepend_to only/
+          if <rst> is "r" remove the variabe before append/prepend,
+          thus if <val> is already in <var> it will move it to the
+          front (prepend_to) or the back (append_to) of <var>.
+  <var>   The value to be added to <var>
+Example:
+  prepend_to_path PATH :d /path/a:/path/b
+    for each $val in "/path/a" and "/path/b", the $val will be
+    prepended to $PATH if it is not aleady in $PATH and if it exists
+    and it is a diretory.
+  $ echo $PATH
+  /bin:/usr/bin:~/bin
+  $ prepend_to_path PATH :d ~/bin:~/usr/bin:~/.local/bin:/not/exist
+  $ echo $PATH
+  ~/usr/bin:~/.local/bin:/bin:/usr/bin:~/bin
+EOF
+}
+export -f _pend_to_usage
+
+# helper
+function _escape() { sed 's:\([-+.?()^$]\):\\\1:g' <<< "$*" ; }
+export -f _escape
+
+# helper
+function _in_var() {
+    local var=$1
+    local sep=${2:0:1}
+    local val=$3
+    local list=$(xargs -d$sep -n1 <<< "${!var}")
+    grep -q "^$(_escape ${val})$" <<< "${list}"
+}
+export -f _in_var
+
+# helper
+function _remove_from() {
+    local var=$1
+    local sep=${2:0:1}
+    local val=$3
+    xargs -d$sep -n1 <<< "${!var}" \
+        | grep -v "^$(_escape ${val})$" \
+        | tr "\n" "${sep}" \
+        | sed "s/\\${sep}\\${sep}$//"
+}
+
+# see usage
+function remove_from() {
+    [ -z "$1" ] && _pend_to_usage && return 1
+    local var=$1
+    local sep=${2:0:1}
+    for p in $(xargs -d$sep -n1 <<< "${*:3}" | sed '$d') ; do
+        _in_var $var $sep $p && eval export $var=$(_remove_from $var $sep $p)
+    done
+}
+export -f _remove_from remove_from
+
+# helper
+function _append_to() {
+    local var=$1
+    local sep=${2:0:1}
+    local val=$3
+    if [ "${!var}" ] ; then
+        _in_var $@ || eval export $var=\$$var$sep$val
+    else
+        eval export $var=$val
+    fi
+}
+
+# see usage
+function append_to() {
+    [ -z "$1" ] && _pend_to_usage && return 1
+    local var=$1
+    local sep=${2:0:1}
+    local tst=${2:1:1}
+    local rst=${2:2:1}
+    [ "$rst" == "r" ] && remove_from $@
+    local p
+    for p in $(xargs -d$sep -n1 <<< "${*:3}" | sed '$d') ; do
+        [ -z "$tst" ] || [ -$tst "$p" ] || continue
+        _append_to $var $sep $p
+    done
+}
+export -f _append_to append_to
+
+# helper
+function _prepend_to() {
+    local var=$1
+    local sep=${2:0:1}
+    local val=$3
+    if [ "${!var}" ] ; then
+        _in_var $@ || eval export $var=$val$sep\$$var
+    else
+        eval export $var=$val
+    fi
+}
+
+# see usage
+function prepend_to() {
+    [ -z "$1" ] && _pend_to_usage && return 1
+    local var=$1
+    local sep=${2:0:1}
+    local tst=${2:1:1}
+    local rst=${2:2:1}
+    [ "$rst" == "r" ] && remove_from $@
+    local p
+    for p in $(xargs -d$sep -n1 <<< "${*:3}" | sed '$d' | tac) ; do
+        [ -z "$tst" ] || [ -$tst "$p" ] || continue
+        _prepend_to $var $sep $p
+    done
+}
+export -f _prepend_to prepend_to

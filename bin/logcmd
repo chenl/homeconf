@@ -1,0 +1,223 @@
+#!/bin/bash
+function changelog() { cat <<EOF
+1.0  initial release
+EOF
+}
+function version() { changelog | sed -ne '1s/ .*//p'; }
+function usage() {
+    cat 1>&2 <<EOF
+Usage:
+  ${0##*/} [options] -- COMMAND [ARGS...]"
+Options:
+  -d|--dir DIR            Set log bae direcotry [default: \${LOG_DIR} or \${USER_DIR}/log].
+  -t|--task TASK          Set a task     [default: \${LOG_TASK}].
+  -c|--comment COMMENT    Add a comment  [default: \${LOG_COMMENT}].
+  -a|--alias ALIAS        Give an alternate name (as a symlink) to the resulting log file
+  -A|--max-args NARGNAME  Maximum number of arguments to use in the log name [default: 10].
+  -w|--wait WAIT          Number of seconds to wait before running the COMMAND [default: 10].
+  -m|--mail [MAIL]        Send an e-mail when done.  MAIL is a comma separated list of addresses.
+                          If "@" is ommitted @${DOMAIN} be used [default \${LOG_MAIL}].
+  -h|--help               Print this message and exit.
+  -v|--version            Print version information and exit.
+  -V|--changelog          Print change-log and exit.
+Description:
+  Log file will be writtern under \${USER_DIR}/log/\$TASK,
+  and the file name be constructed from \$COMMAND, \$ARGS,
+  \$COMMENT and the current time.
+Environment:
+  \$USER_DIR='${USER_DIR}'
+  \$LOG_DIR='${LOG_DIR}'
+  \$LOG_TASK='${LOG_TASK}'
+  \$LOG_COMMENT='${LOG_COMMENT}'
+  \$LOG_MAIL='${LOG_MAIL}'
+EOF
+}
+
+# Print its' arguments, tryting to re-create the origianl quoting.
+# note that the quotes are no longer there, so there it need to deduce
+# that they where there once.
+function requote() {
+    local res=""
+    for x in "${@}" ; do
+        grep -q "[[:space:]]" <<< "$x" && res="${res} '${x}'" || res="${res} ${x}"
+    done
+    sed -e 's/^ \(.*\)$/\1/' <<< "${res}"
+}
+
+function canonize() {
+    local path="$1"
+    local giveup=100
+    while grep -Eqe "/\.{0,2}/" <<< "${path}" ; do
+        path=$(sed -re 's://:/:' -e 's:/\./:/:' -e 's:([^/.]|[^/][^/.]|[^/.][^/]|[^/]{3,})/\.\./:/:' <<< "${path}")
+        [ ${giveup} -eq 0 ] && break || let giveup--
+    done
+    echo "$path"
+}
+
+# Print the base name of each ARG, unless it is . .. or ..., in that
+# case use the base name of dir name:
+function base() {
+    local x
+    local nargsname=${NARGSNAME}
+    for x in "${@}" ; do
+        while grep -qe '^\.\.*$' <<< "${x##*/}" ; do
+            grep -qe '^\.*$' <<< "${x}" && break
+            x="${x%/*}"
+        done
+        let nargsname--
+        [ ${nargsname} -ge 0 ] && echo -n "${x##*/} "
+    done
+    # last
+    [ ${nargsname} -lt 0 ] && echo -n "${x##*/} "
+}
+
+# get   foo,bar,baz@gmail.com
+# print foo@$DOMAIN bar@$DOMAIN baz@gmail.com
+function email_addresses() {
+    for x in $(tr "," " " <<< "$1") ; do
+        grep -q @ <<< "${x}" && echo -n "${x} " || echo -n "${x}@${DOMAIN} "
+    done
+}
+
+# usage: excerpt FILE HEAD TAIL
+#    Print the HEAD and TAIL lins of a FILE, or the entire FILE its'
+#    entire legth is shorter than HEAD+TAIL
+function excerpt() {
+    local file="${1}"
+    local head="${2}"
+    local tail="${3}"
+    local max
+    let max=$((head + tail + 2))
+    if [ $(head -n${max} ${file} | wc -l) -lt ${max} ] ; then
+        echo "Content of ${file}:"
+        echo
+        cat ${file}
+    else
+        echo "Excerpt from ${file}:"
+        echo
+        head -n${head} ${file}
+        echo "..."
+        tail -n${tail} ${file}
+    fi
+}
+
+# Compose the a mail message
+function mail_message() {
+    local cmd="${1}"
+    local rc="${2}"
+    local log="${3}"
+
+    echo "To: $(email_addresses "${MAIL}")"
+    echo "From: Log Command (on behalf of) <${USER}@${DOMAIN}>"
+    echo "Subject: LOGCMD: ${RESULT} \"${CMD}\""
+    echo
+    echo "The command \"${CMD}\" returned with exit code ${RC}"
+
+    if [ ${RC} -eq 0 ] ; then
+        echo "Compressed log at ${LOG}"
+    else
+        excerpt "${LOG}" 9 50
+    fi
+}
+
+
+# MAIN:
+
+# Options:
+DOMAIN=example.com
+USER_DIR=${USER_DIR:=${HOME}}
+DIR=${LOG_DIR:-"${USER_DIR}/log"}
+TASK=${LOG_TASK:+"/${LOG_TASK}"}
+COMMENT=${LOG_COMMENT:+"-${LOG_COMMENT}"}
+NARGSNAME=10
+WAIT=10
+ALIAS=""
+LOG_MAIL=${LOG_MAIL:-$USER}
+MAIL=""
+
+_temp=$(getopt -o "d:c:t:a:A:w:m::hvV" --long "dir:,comment:,task:,alias:,help,max-args:,wait:,mail::,version,changelog" -n 'logcmd' -- "$@")
+# Note the quotes around `${_temp}': they are essential!
+eval set -- "${_temp}"
+
+while true ; do
+    case "${1}" in
+        --)             shift ; break ;;
+        -d|--dir)       DIR="${2}" ; shift ;;
+        -c|--comment)   COMMENT="-${2}" ; shift ;;
+        -t|--task)      TASK="/${2}" ; shift ;;
+        -a|--alias)     ALIAS="${2}" ; shift ;;
+        -h|--help)      usage ; exit 0 ;;
+        -A|--max-args)  NARGSNAME="${2}" ; shift ;;
+        -w|--wait)      WAIT="${2}" ; shift ;;
+        -m|--mail)      MAIL="${2:-$LOG_MAIL}" ; shift ;;
+        -v|--version)   version ; exit 0 ;;
+        -V|--changelog) changelog ; exit 0 ;;
+        -*|--*) echo "Error: invalid option '${1}'" >&2 ; _usage ; break ;;
+        *) break;;
+    esac
+    shift
+done
+
+
+NOW=$(date +%Y-%m-%d_%H-%M-%S)
+CMD=$(requote "${@}")
+# Normalize the ARGS into a file-name:
+LOG=${DIR}${TASK}/${NOW}.$(base "$@" "${COMMENT}" | sed \
+    -e 's:[^a-zA-Z0-9._-]:_:g' \
+    -e 's:__*:_:g' \
+    -e 's:[_-]*-[_-]*:-:g' \
+    -e 's:[_.-]*\.:.:g;s:\.[_.-]:.:g' \
+    -e 's:^[_.-]*::;s:[_.-]*$::;').log
+
+# Let the user a chance to evaluate the command:
+if [ ${WAIT} -gt 0 ] ; then
+    cat <<EOF
+run   "${CMD}"   within ${WAIT} seconds...
+[Enter] = start now; [Ctrl]+[C] = abort
+EOF
+    read -t ${WAIT}
+fi
+
+# Setup:
+echo "Loggiong to ${LOG}"
+mkdir -p ${DIR}${TASK}
+
+# Log header:
+echo "TASK: ${TASK#/}
+COMMENT: ${COMMENT#-}
+TIME: ${NOW}
+HOST: $(hostname -f)
+PWD:  ${PWD}
+CMD:  ${CMD}
+--- 8< --------------------------------------------------" | tee ${LOG}
+
+# Run, log and time the command:
+( time "$@" ) 2>&1| tee -a ${LOG}
+RC=${PIPESTATUS[0]}
+
+# Log footer:
+echo "-------------------------------------------------- >8 ---
+rc=${RC}" | tee -a ${LOG}
+
+# Exit:
+
+if [ ${RC} -eq 0 ] ; then
+    RESULT="DONE"
+    echo -n "Compressing full log to ${LOG}.gz"
+    gzip ${LOG}
+    LOG="${LOG}.gz"
+    echo " -- Done."
+else
+    RESULT="FAIL"
+    echo "See full log at ${LOG}"
+fi
+if [ -n "${ALIAS}" ] ; then
+    ln -sf "${LOG}" "${ALIAS}"
+    grep -q "^/" <<< "${ALIAS}" || ALIAS="$(canonize ${PWD}/${ALIAS})"
+    echo "AKA: ${ALIAS}"
+fi
+
+if [ -n "${MAIL}" ] ; then
+    mail_message "${CMD}" "${RC}" "${LOG}" | ssmtp $(email_addresses "${MAIL}")
+fi
+exit ${RC}

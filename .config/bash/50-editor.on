@@ -1,0 +1,5 @@
+# -*- mode: sh -*-
+
+export EDITOR=ee
+export VISUAL=$EDITOR
+export VI=$EDITOR

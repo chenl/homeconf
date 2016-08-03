@@ -46,5 +46,9 @@
   (interactive)
   (insert (buffer-file-name (window-buffer (minibuffer-selected-window)))))
 
+;; Move to the beginning of a line the smart way
+;; http://pragmaticemacs.com/emacs/move-to-the-beginning-of-a-line-the-smart-way/
+(global-set-key (kbd "<home>") #'crux-move-beginning-of-line)
+
 (provide 'misc)
 ;;; misc.el ends here

@@ -39,5 +39,12 @@
 (global-set-key (kbd "M-p M-g") #'helm-git-grep)
 (global-set-key (kbd "M-p g") #'helm-git-grep)
 
+;; How to get current buffer's filename in emacs?
+;; http://unix.stackexchange.com/a/45381/5235
+(defun insert-file-name ()
+  "Insert the full path file name into the current buffer."
+  (interactive)
+  (insert (buffer-file-name (window-buffer (minibuffer-selected-window)))))
+
 (provide 'misc)
 ;;; misc.el ends here

@@ -16,9 +16,12 @@ Allow the user to jump back."
   (push-mark)
   (elpy-goto-definition))
 
+(require 'elpy)
 (add-hook 'elpy-mode
           (lambda ()
-            (define-key elpy-mode-map (kbd "M-.") #'elpy-goto-definition-with-return)))
+            (define-key elpy-mode-map (kbd "M-.") #'elpy-goto-definition-with-return)
+            (define-key elpy-mode-map (kbd "C-<left>" #'sp-forward-slurp-sexp))
+            (define-key elpy-mode-map (kbd "C-<right>" #'sp-forward-bound-fn))))
 
 (provide 'mypy)
 ;;; my-py.el ends here

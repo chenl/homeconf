@@ -33,13 +33,13 @@ Where:
           front (prepend_to) or the back (append_to) of <var>.
   <var>   The value to be added to <var>
 Example:
-  prepend_to_path PATH :d /path/a:/path/b
+  prepend_to PATH :d /path/a:/path/b
     for each $val in "/path/a" and "/path/b", the $val will be
     prepended to $PATH if it is not aleady in $PATH and if it exists
     and it is a diretory.
   $ echo $PATH
   /bin:/usr/bin:~/bin
-  $ prepend_to_path PATH :d ~/bin:~/usr/bin:~/.local/bin:/not/exist
+  $ prepend_to PATH :d ~/bin:~/usr/bin:~/.local/bin:/not/exist
   $ echo $PATH
   ~/usr/bin:~/.local/bin:/bin:/usr/bin:~/bin
 EOF

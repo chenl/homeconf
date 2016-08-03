@@ -4,10 +4,14 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(auto-hscroll-mode nil)
+ '(bm-highlight-style (quote bm-highlight-only-fringe))
+ '(bm-recenter t)
+ '(ein:use-auto-complete t)
  '(es-always-pretty-print t)
  '(mouse-yank-at-point t)
  '(prelude-guru nil)
  '(scroll-bar-mode nil)
+ '(temporary-bookmark-p nil)
  '(whitespace-line-column 95))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

@@ -1,0 +1,6 @@
+# -*- mode: sh -*-
+# https://github.com/pyenv/pyenv
+
+export PYENV_ROOT="$HOME/.pyenv"
+append_to PATH :d "$PYENV_ROOT/bin"
+[ -x "$PYENV_ROOT/bin/pyenv" ] && eval "$(pyenv init -)"

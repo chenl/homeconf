@@ -117,8 +117,14 @@ function set_bash_prompt () {
     BRANCH=''
   fi
 
+  if [ $UID -eq 0 ] ; then
+    USER_COLOR=$LIGHT_RED
+  else
+    USER_COLOR=$GREEN
+  fi
+
   # Set the bash prompt variable.
-  PS1="${PYTHON_VIRTUALENV}${GREEN}\u@\h ${YELLOW}\w${COLOR_NONE} ${BRANCH}${PROMPT_SYMBOL} "
+  PS1="${PYTHON_VIRTUALENV}${USER_COLOR}\u@\h ${YELLOW}\w${COLOR_NONE} ${BRANCH}${PROMPT_SYMBOL} "
 }
 
 # Tell bash to execute this function just before displaying its prompt.

@@ -1,0 +1,6 @@
+# -*- mode: sh -*-
+# rust
+
+append_to PATH :d $HOME/.cargo/bin
+declare -F _cargo > /dev/null \
+    || source $HOME/.rustup/toolchains/$(rustup toolchain list | awk '/(default)/ {print $1}')/etc/bash_completion.d/cargo
